@@ -1,0 +1,51 @@
+# Django and core dependencies
+Django==5.1.6
+djangorestframework==3.15.2
+django-cors-headers==4.6.0
+python-decouple==3.8
+
+# Database
+psycopg2-binary==2.9.10  # For PostgreSQL support (optional)
+
+# API and serialization
+drf-spectacular==0.28.0  # For API documentation
+django-filter==24.4  # For filtering support
+
+# Authentication
+djangorestframework-simplejwt==5.3.1  # JWT authentication
+
+# Google Maps integration
+googlemaps==4.10.0  # Google Maps API client
+
+# IoT and real-time features
+channels==4.2.0  # For WebSocket support
+channels-redis==4.3.0  # Redis backend for channels
+redis==5.2.2  # Redis client
+
+# FastAPI integration (for IoT and route optimization services)
+fastapi==0.118.0
+uvicorn==0.34.0
+pydantic==2.10.3
+httpx==0.28.1  # For inter-service communication
+
+# Celery for background tasks
+celery==5.4.0
+django-celery-beat==2.7.0  # For scheduled tasks
+django-celery-results==2.5.1  # Store task results in Django
+
+# Utilities
+Pillow==10.4.0  # Image processing
+python-dateutil==2.9.0
+pandas==2.2.3  # Data analysis for analytics
+numpy==2.2.1  # Numerical computations
+
+# Development tools
+django-debug-toolbar==5.0.0
+django-extensions==3.2.3
+ipython==8.32.0
+
+# Testing
+pytest==8.3.4
+pytest-django==4.10.0
+factory-boy==3.3.1
+faker==33.1.0 
