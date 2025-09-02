@@ -6,11 +6,11 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Count, Sum, F
 from django.utils import timezone
 from datetime import timedelta
-from .models import Manager, SupplyInventory, SupplyTransaction, DistributionPlan, Analytics
+from .models import Manager, SoybeanMealProduct, SupplyInventory, SupplyTransaction, WeeklyDistributionPlan, MonthlyDistributionPlan, KPIMetrics
 from .serializers import (
     ManagerSerializer, SupplyInventorySerializer, 
-    SupplyTransactionSerializer, DistributionPlanSerializer,
-    AnalyticsSerializer, DashboardSerializer
+    SupplyTransactionSerializer, WeeklyDistributionPlanSerializer,
+    KPIMetricsSerializer, DashboardSerializer
 )
 from clients.models import Farmer, Order, FeedStorage
 from driver.models import Driver, Delivery
@@ -24,7 +24,7 @@ class ManagerViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
-        """Get dashboard summary data"""
+        """Get dashboard summary data for Soya Excel"""
         # Calculate date ranges
         today = timezone.now().date()
         month_start = today.replace(day=1)
@@ -37,9 +37,15 @@ class ManagerViewSet(viewsets.ModelViewSet):
         ).count()
         available_drivers = Driver.objects.filter(is_available=True).count()
         
-        # Low stock alerts
+        # Low stock and emergency alerts (Soya Excel thresholds)
         low_stock_alerts = FeedStorage.objects.filter(
-            current_quantity__lte=F('capacity') * 0.2
+            Q(current_quantity__lte=F('low_stock_threshold_tonnes')) |
+            Q(current_quantity__lte=F('capacity') * F('low_stock_threshold_percentage') / 100)
+        ).count()
+        
+        emergency_alerts = FeedStorage.objects.filter(
+            Q(current_quantity__lte=0.5) | 
+            Q(current_quantity__lte=F('capacity') * 0.1)
         ).count()
         
         # Pending orders
@@ -51,16 +57,16 @@ class ManagerViewSet(viewsets.ModelViewSet):
             status='completed'
         ).count()
         
-        # Inventory status
-        inventory_items = SupplyInventory.objects.all()
+        # Inventory status for soybean meal products
+        inventory_items = SupplyInventory.objects.select_related('product').all()
         inventory_status = []
         for item in inventory_items:
             inventory_status.append({
                 'id': item.id,
-                'product_name': item.product_name,
+                'product_name': item.product.product_name,
                 'current_stock': float(item.current_stock),
                 'minimum_stock': float(item.minimum_stock),
-                'is_low_stock': item.is_low_stock  # This uses the property
+                'is_low_stock': item.is_low_stock
             })
         
         data = {
@@ -68,6 +74,7 @@ class ManagerViewSet(viewsets.ModelViewSet):
             'active_routes': active_routes,
             'available_drivers': available_drivers,
             'low_stock_alerts': low_stock_alerts,
+            'emergency_alerts': emergency_alerts,
             'pending_orders': pending_orders,
             'monthly_deliveries': monthly_deliveries,
             'inventory_status': inventory_status,
@@ -77,13 +84,21 @@ class ManagerViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class SoybeanMealProductViewSet(viewsets.ModelViewSet):
+    queryset = SoybeanMealProduct.objects.all()
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['product_type', 'primary_origin', 'sustainability_certified', 'is_active']
+    search_fields = ['product_name', 'product_code']
+    ordering_fields = ['product_name', 'base_price_per_tonne']
+
+
 class SupplyInventoryViewSet(viewsets.ModelViewSet):
-    queryset = SupplyInventory.objects.all()
+    queryset = SupplyInventory.objects.select_related('product').all()
     serializer_class = SupplyInventorySerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['is_low_stock']
-    search_fields = ['product_name', 'product_code']
-    ordering_fields = ['product_name', 'current_stock']
+    filterset_fields = ['product__product_type', 'quality_grade']
+    search_fields = ['product__product_name', 'product__product_code', 'silo_number']
+    ordering_fields = ['product__product_name', 'current_stock']
     
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
@@ -96,24 +111,24 @@ class SupplyInventoryViewSet(viewsets.ModelViewSet):
 
 
 class SupplyTransactionViewSet(viewsets.ModelViewSet):
-    queryset = SupplyTransaction.objects.all()
+    queryset = SupplyTransaction.objects.select_related('inventory__product').all()
     serializer_class = SupplyTransactionSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['transaction_type', 'inventory']
-    search_fields = ['reference_number', 'description']
+    filterset_fields = ['transaction_type', 'origin_country', 'quality_approved']
+    search_fields = ['reference_number', 'description', 'container_number']
     ordering_fields = ['transaction_date']
     
     def perform_create(self, serializer):
         serializer.save(performed_by=self.request.user)
 
 
-class DistributionPlanViewSet(viewsets.ModelViewSet):
-    queryset = DistributionPlan.objects.all()
-    serializer_class = DistributionPlanSerializer
+class WeeklyDistributionPlanViewSet(viewsets.ModelViewSet):
+    queryset = WeeklyDistributionPlan.objects.all()
+    serializer_class = WeeklyDistributionPlanSerializer
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['status']
-    search_fields = ['name', 'description']
-    ordering_fields = ['start_date', 'created_at']
+    filterset_fields = ['planning_week', 'status', 'planned_on_tuesday', 'finalized_by_friday']
+    search_fields = ['plan_name']
+    ordering_fields = ['week_start_date', 'created_at']
     
     def perform_create(self, serializer):
         manager = Manager.objects.get(user=self.request.user)
@@ -121,9 +136,15 @@ class DistributionPlanViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        """Approve a distribution plan"""
+        """Approve a weekly distribution plan"""
         plan = self.get_object()
         manager = Manager.objects.get(user=request.user)
+        
+        if not manager.can_approve_plans:
+            return Response(
+                {'error': 'You do not have permission to approve plans'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
         plan.status = 'approved'
         plan.approved_by = manager
@@ -134,38 +155,63 @@ class DistributionPlanViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class AnalyticsViewSet(viewsets.ModelViewSet):
-    queryset = Analytics.objects.all()
-    serializer_class = AnalyticsSerializer
+class MonthlyDistributionPlanViewSet(viewsets.ModelViewSet):
+    queryset = MonthlyDistributionPlan.objects.all()
     permission_classes = [IsAuthenticated]
-    filterset_fields = ['metric_type']
-    ordering_fields = ['generated_at']
+    filterset_fields = ['status']
+    search_fields = ['plan_name']
+    ordering_fields = ['month', 'created_at']
+    
+    def perform_create(self, serializer):
+        manager = Manager.objects.get(user=self.request.user)
+        serializer.save(created_by=manager)
+
+
+class KPIMetricsViewSet(viewsets.ModelViewSet):
+    queryset = KPIMetrics.objects.all()
+    serializer_class = KPIMetricsSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ['metric_type', 'period_type', 'trend_direction']
+    ordering_fields = ['calculated_at', 'period_end']
     
     @action(detail=False, methods=['get'])
-    def delivery_performance(self, request):
-        """Get delivery performance analytics"""
-        start_date = request.query_params.get('start_date')
-        end_date = request.query_params.get('end_date')
+    def soya_excel_kpis(self, request):
+        """Get Soya Excel's priority KPIs: KM/TM by product type"""
+        period_type = request.query_params.get('period_type', 'weekly')
         
-        if not start_date or not end_date:
-            return Response(
-                {'error': 'start_date and end_date are required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Get latest KPIs for each product type
+        kpi_types = ['km_per_tonne_trituro_44', 'km_per_tonne_dairy_trituro', 'km_per_tonne_oil']
         
-        # Calculate delivery metrics
-        deliveries = Delivery.objects.filter(
-            assigned_date__range=[start_date, end_date]
-        )
+        kpis = {}
+        for kpi_type in kpi_types:
+            latest_kpi = KPIMetrics.objects.filter(
+                metric_type=kpi_type,
+                period_type=period_type
+            ).order_by('-period_end').first()
+            
+            if latest_kpi:
+                kpis[kpi_type] = {
+                    'metric_value': float(latest_kpi.metric_value),
+                    'target_value': float(latest_kpi.target_value) if latest_kpi.target_value else None,
+                    'trend_direction': latest_kpi.trend_direction,
+                    'period_end': latest_kpi.period_end
+                }
         
-        total = deliveries.count()
-        completed = deliveries.filter(status='completed').count()
+        return Response(kpis)
+    
+    @action(detail=False, methods=['get'])
+    def forecast_accuracy(self, request):
+        """Get forecast accuracy metrics"""
+        weekly_plans = WeeklyDistributionPlan.objects.filter(
+            forecast_accuracy_percentage__isnull=False
+        ).order_by('-week_start_date')[:4]  # Last 4 weeks
         
-        metrics = {
-            'total_deliveries': total,
-            'completed_deliveries': completed,
-            'completion_rate': (completed / total * 100) if total > 0 else 0,
-            'average_delivery_time': 0,  # Calculate from actual times
-        }
+        accuracies = []
+        for plan in weekly_plans:
+            accuracies.append({
+                'week': plan.week_start_date.strftime('%Y-W%V'),
+                'accuracy': float(plan.forecast_accuracy_percentage),
+                'meets_target': plan.forecast_accuracy_percentage >= 90  # 90-95% target
+            })
         
-        return Response(metrics)
+        return Response(accuracies)

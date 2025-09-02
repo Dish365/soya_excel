@@ -45,71 +45,83 @@
 
 :root {
   --radius: 0.625rem;
+  
+  /* Soya Excel Brand Colors */
+  --soya-green: #2D5016;      /* Deep forest green */
+  --soya-green-light: #4A7C59; /* Lighter green for accents */
+  --soya-green-lighter: #E8F5E8; /* Very light green for backgrounds */
+  --soya-yellow: #FFD700;     /* Bright golden yellow */
+  --soya-yellow-light: #FFE55C; /* Lighter yellow for accents */
+  --soya-yellow-lighter: #FFF9E6; /* Very light yellow for backgrounds */
+  --soya-black: #1A1A1A;      /* Deep black */
+  --soya-gray: #2A2A2A;       /* Dark gray */
+  --soya-gray-light: #4A4A4A; /* Medium gray */
+  
   --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --foreground: var(--soya-black);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: var(--soya-black);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --popover-foreground: var(--soya-black);
+  --primary: var(--soya-green);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--soya-yellow);
+  --secondary-foreground: var(--soya-black);
+  --muted: var(--soya-yellow-lighter);
+  --muted-foreground: var(--soya-gray-light);
+  --accent: var(--soya-green-light);
+  --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --border: var(--soya-yellow-lighter);
+  --input: var(--soya-yellow-lighter);
+  --ring: var(--soya-green);
+  --chart-1: var(--soya-green);
+  --chart-2: var(--soya-yellow);
+  --chart-3: var(--soya-green-light);
+  --chart-4: var(--soya-yellow-light);
+  --chart-5: var(--soya-gray);
+  --sidebar: var(--soya-black);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: var(--soya-green);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: var(--soya-yellow);
+  --sidebar-accent-foreground: var(--soya-black);
+  --sidebar-border: var(--soya-gray);
+  --sidebar-ring: var(--soya-green);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
+  --background: var(--soya-black);
+  --foreground: oklch(1 0 0);
+  --card: var(--soya-gray);
+  --card-foreground: oklch(1 0 0);
+  --popover: var(--soya-gray);
+  --popover-foreground: oklch(1 0 0);
+  --primary: var(--soya-yellow);
+  --primary-foreground: var(--soya-black);
+  --secondary: var(--soya-green);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: var(--soya-gray-light);
   --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
+  --accent: var(--soya-green-light);
+  --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --ring: var(--soya-yellow);
+  --chart-1: var(--soya-green);
+  --chart-2: var(--soya-yellow);
+  --chart-3: var(--soya-green-light);
+  --chart-4: var(--soya-yellow-light);
+  --chart-5: var(--soya-gray-light);
+  --sidebar: var(--soya-black);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: var(--soya-yellow);
+  --sidebar-primary-foreground: var(--soya-black);
+  --sidebar-accent: var(--soya-green);
+  --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar-ring: var(--soya-yellow);
 }
 
 @layer base {
@@ -119,4 +131,65 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom Soya Excel Styles */
+.soya-gradient {
+  background: linear-gradient(135deg, var(--soya-green) 0%, var(--soya-black) 100%);
+}
+
+.soya-gradient-yellow {
+  background: linear-gradient(135deg, var(--soya-yellow) 0%, var(--soya-yellow-light) 100%);
+}
+
+.soya-card {
+  @apply bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200;
+}
+
+.soya-card-dark {
+  @apply bg-gray-800 border border-gray-700 rounded-xl shadow-lg;
+}
+
+.soya-button-primary {
+  @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+}
+
+.soya-button-secondary {
+  @apply bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-2 px-4 rounded-lg transition-colors duration-200;
+}
+
+.soya-button-outline {
+  @apply border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200;
+}
+
+/* Custom animations */
+@keyframes soya-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.soya-pulse {
+  animation: soya-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--soya-yellow-lighter);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--soya-green);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--soya-green-light);
 }

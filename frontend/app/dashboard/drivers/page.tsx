@@ -37,13 +37,30 @@ import {
   Mail, 
   Truck, 
   UserCheck, 
-  Calendar,
   Package,
-  Clock
+  Clock,
+  Settings
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface Vehicle {
+  id: string;
+  vehicle_number: string;
+  vehicle_type: string;
+  capacity_tonnes: number;
+  status: string;
+  make_model?: string;
+  year?: number;
+}
 
 interface Driver {
   id: string;
@@ -55,6 +72,18 @@ interface Driver {
   is_available: boolean;
   created_at: string;
   updated_at: string;
+  assigned_vehicle_info?: {
+    id: string;
+    vehicle_number: string;
+    vehicle_type: string;
+    capacity_tonnes: number;
+    status: string;
+  };
+  current_delivery_status?: {
+    status: string;
+    route_name: string;
+    delivery_id: string;
+  };
   user: {
     email: string;
     username: string;
@@ -68,6 +97,7 @@ interface Driver {
 
 interface Delivery {
   id: string;
+  driver: number;
   route: {
     name: string;
     date: string;
@@ -88,9 +118,12 @@ export default function DriversPage() {
   const [driverDeliveries, setDriverDeliveries] = useState<Delivery[]>([]);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [filterAvailable, setFilterAvailable] = useState<boolean | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
 
   useEffect(() => {
     fetchDrivers();
+    fetchVehicles();
   }, []);
 
   const fetchDrivers = async () => {
@@ -106,25 +139,32 @@ export default function DriversPage() {
     }
   };
 
+  const fetchVehicles = async () => {
+    try {
+      const data = await driverAPI.getAvailableVehicles();
+      setVehicles(data);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    }
+  };
+
   const fetchDriverDeliveries = async (driverId: string) => {
     try {
-      const deliveries = await driverAPI.getDeliveries();
-      const driverDeliveries = deliveries.filter((d: any) => d.driver === parseInt(driverId));
-      setDriverDeliveries(driverDeliveries);
+      const deliveries = await driverAPI.getDriverDeliveries(driverId);
+      setDriverDeliveries(deliveries);
     } catch (error) {
       console.error('Error fetching driver deliveries:', error);
+      toast.error('Failed to load driver deliveries');
     }
   };
 
   const toggleDriverAvailability = async (driver: Driver) => {
     try {
-      // In a real app, this would call an API endpoint
-      const updatedDrivers = drivers.map(d => 
-        d.id === driver.id ? { ...d, is_available: !d.is_available } : d
-      );
-      setDrivers(updatedDrivers);
-      toast.success(`Driver ${driver.full_name} is now ${!driver.is_available ? 'available' : 'unavailable'}`);
+      await driverAPI.toggleDriverAvailability(driver.id);
+      await fetchDrivers();
+      toast.success(`Driver ${driver.full_name} availability updated successfully`);
     } catch (error) {
+      console.error('Error updating driver availability:', error);
       toast.error('Failed to update driver availability');
     }
   };
@@ -145,6 +185,37 @@ export default function DriversPage() {
   const viewDriverDetails = async (driver: Driver) => {
     setSelectedDriver(driver);
     await fetchDriverDeliveries(driver.id);
+    setIsDetailOpen(true);
+  };
+
+  const assignVehicleToDriver = async (driverId: string, vehicleId: string) => {
+    try {
+      await driverAPI.assignVehicleToDriver(driverId, vehicleId);
+      await fetchDrivers();
+      await fetchVehicles();
+      setSelectedVehicleId('');
+      toast.success('Vehicle assigned successfully');
+    } catch (error) {
+      console.error('Error assigning vehicle:', error);
+      toast.error('Failed to assign vehicle');
+    }
+  };
+
+  const unassignVehicleFromDriver = async (driver: Driver) => {
+    try {
+      await driverAPI.unassignVehicleFromDriver(driver.id);
+      await fetchDrivers();
+      await fetchVehicles();
+      toast.success(`Vehicle unassigned from ${driver.full_name} successfully`);
+    } catch (error) {
+      console.error('Error unassigning vehicle:', error);
+      toast.error('Failed to unassign vehicle');
+    }
+  };
+
+  const openVehicleAssignment = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setSelectedVehicleId('');
     setIsDetailOpen(true);
   };
 
@@ -308,8 +379,13 @@ export default function DriversPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {driver.vehicle_number || (
-                        <span className="text-muted-foreground">No vehicle</span>
+                      {driver.assigned_vehicle_info ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">{driver.assigned_vehicle_info.vehicle_number}</Badge>
+                          <Badge variant="secondary">{driver.assigned_vehicle_info.vehicle_type}</Badge>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">No vehicle assigned</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -324,13 +400,33 @@ export default function DriversPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => viewDriverDetails(driver)}
-                      >
-                        View Details
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewDriverDetails(driver)}
+                        >
+                          View Details
+                        </Button>
+                        {driver.assigned_vehicle_info ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => unassignVehicleFromDriver(driver)}
+                          >
+                            Unassign Vehicle
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openVehicleAssignment(driver)}
+                          >
+                            <Settings className="h-4 w-4 mr-1" />
+                            Assign Vehicle
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -354,7 +450,7 @@ export default function DriversPage() {
                     <div className="space-y-2 text-sm">
                       <p><span className="font-medium">Staff ID:</span> {selectedDriver.staff_id}</p>
                       <p><span className="font-medium">License:</span> {selectedDriver.license_number}</p>
-                      <p><span className="font-medium">Vehicle:</span> {selectedDriver.vehicle_number || 'Not assigned'}</p>
+                      <p><span className="font-medium">Vehicle:</span> {selectedDriver.assigned_vehicle_info?.vehicle_number || 'Not assigned'}</p>
                     </div>
                   </div>
                   <div>
@@ -413,6 +509,38 @@ export default function DriversPage() {
                     <p className="text-sm text-muted-foreground">No delivery history</p>
                   )}
                 </div>
+
+                {/* Vehicle Assignment Form */}
+                {selectedDriver && (
+                  <div className="mt-6">
+                    <h4 className="font-semibold mb-2">Assign Vehicle</h4>
+                    <Select onValueChange={(value) => setSelectedVehicleId(value)} value={selectedVehicleId}>
+                      <SelectTrigger id="vehicle">
+                        <SelectValue placeholder="Select a vehicle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vehicles.map((vehicle) => (
+                          <SelectItem key={vehicle.id} value={vehicle.id}>
+                            {vehicle.vehicle_number} ({vehicle.vehicle_type})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                                         <Button
+                       className="mt-4"
+                       onClick={() => {
+                         if (selectedDriver?.id && selectedVehicleId) {
+                           assignVehicleToDriver(selectedDriver.id, selectedVehicleId);
+                         } else {
+                           toast.error('Driver or Vehicle not selected.');
+                         }
+                       }}
+                       disabled={!selectedVehicleId}
+                     >
+                       Assign Vehicle
+                     </Button>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
